@@ -56,7 +56,7 @@ export default function HeroSectionOne() {
           Deliver Instant, accurate medical assistance through nutural voice conversations.
           Automate appointment scheduling, symptom triage, and follow-up care-24/7.
         </motion.p>
-        <Link href={'/sin-in'}>
+        <Link href={'/sign-in'}>
         <motion.div
           initial={{
             opacity: 0,
