@@ -7,6 +7,7 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+
 export default function HeroSectionOne() {
   return (
     <div className="relative  my-10 flex  flex-col items-center justify-center">
@@ -120,7 +121,7 @@ const Navbar = () => {
       </button> </Link>:
       <div className="flex gap-5 items-center">
         <UserButton/>
-        <Button>Dashboard</Button>
+       <Link href={'/dashboard'}><Button >Dashboard</Button></Link>
       </div>
 }
     </nav>
