@@ -1,6 +1,7 @@
 "use client";
 
-
+import VoiceAgent from "@/components/VoiceAgent";
+import { AIDoctorAgents } from "@/data/doctors";
 import { motion } from "motion/react";
 import {FeaturesBentoGrid} from "./_components/FeaturesBentoGrid";
 import { UserButton, useUser } from "@clerk/nextjs";
