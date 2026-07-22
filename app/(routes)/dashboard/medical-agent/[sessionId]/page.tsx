@@ -100,11 +100,12 @@
 
 "use client"
 import axios from 'axios';
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, PhoneCall, PhoneOff } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 type doctorAgent = {
   id: number,
@@ -116,7 +117,7 @@ type doctorAgent = {
   subscriptionRequired: boolean
 }
 
-type SessionDetail ={
+export type SessionDetail ={
   id:number,
   notes:string,
   sessionId:string,
@@ -139,6 +140,7 @@ export default function MedicalVoiceAgent() {
   const [liveUserText, setLiveUserText] = useState('');
   const [assistantText, setAssistantText] = useState('');
   const [seconds, setSeconds] = useState(0);
+  const [ending, setEnding] = useState(false);
 
   const messagesRef = useRef<Message[]>([]);
   const recognitionRef = useRef<any>(null);
@@ -146,9 +148,33 @@ export default function MedicalVoiceAgent() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const sessionDetailRef = useRef<SessionDetail>();
   const isSpeakingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
 
+
+  const router = useRouter();
+
+  // Session fetch
   useEffect(()=>{
-      sessionId&&GetSessionDetail();
+      if (!sessionId || hasFetchedRef.current) return;
+      hasFetchedRef.current = true;
+
+      const fetchSession = async () => {
+        try {
+          const result = await axios.get('/api/session-chat?sessionId='+sessionId);
+          console.log('Session data:', result.data);
+          if (result.data && result.data.selectedDoctor) {
+            setSessionDetail(result.data);
+          } else {
+            console.error('Session fetch returned invalid/empty data:', result.data);
+            hasFetchedRef.current = false;
+          }
+        } catch (error) {
+          console.error('Failed to fetch session:', error);
+          hasFetchedRef.current = false;
+        }
+      };
+
+      fetchSession();
   },[sessionId])
 
   useEffect(() => {
@@ -158,12 +184,6 @@ export default function MedicalVoiceAgent() {
   useEffect(() => {
     isSpeakingRef.current = isSpeaking;
   }, [isSpeaking]);
-
-  const GetSessionDetail = async () =>{
-    const result = await axios.get('/api/session-chat?sessionId='+sessionId);
-    console.log('Session data:', result.data);
-    setSessionDetail(result.data);
-  }
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60).toString().padStart(2, '0');
@@ -264,15 +284,45 @@ export default function MedicalVoiceAgent() {
     await speak(greeting);
   }
 
+  
+const GenerateReportInBackground = (sid: string, messages: Message[], session: SessionDetail | undefined) => {
+  axios.post('/api/medical-report', {
+    messages: messages,
+    sessionDetail: session,
+    sessionId: sid
+  })
+  .then((result) => {
+    console.log('Report generated and saved:', result.data);
+  })
+  .catch((error) => {
+    console.error('Background report generation failed:', error);
+  })
+  .finally(() => {
+    const pending = JSON.parse(localStorage.getItem('pendingReports') || '[]');
+    const updated = pending.filter((id: string) => id !== sid);
+    localStorage.setItem('pendingReports', JSON.stringify(updated));
+  });
+}
   const EndCall = () => {
-    setCallStarted(false);
+    setEnding(true);
     callActiveRef.current = false;
     recognitionRef.current?.stop();
     window.speechSynthesis.cancel();
     if (timerRef.current) clearInterval(timerRef.current);
-    setSeconds(0);
-    setLiveUserText('');
-    setAssistantText('');
+
+    const sid = Array.isArray(sessionId) ? sessionId[0] : sessionId;
+
+   
+    const pending = JSON.parse(localStorage.getItem('pendingReports') || '[]');
+    if (!pending.includes(sid)) {
+      pending.push(sid);
+      localStorage.setItem('pendingReports', JSON.stringify(pending));
+    }
+
+   
+    GenerateReportInBackground(sid as string, messagesRef.current, sessionDetailRef.current);
+    toast.success("Your report is generated!")
+    router.replace('/dashboard');
   }
 
   return (
@@ -296,10 +346,15 @@ export default function MedicalVoiceAgent() {
           <h2 className='text-gray-400'>{assistantText}</h2>
           <h2 className='text-lg'>{liveUserText}</h2>
         </div>
+
         {!callStarted ? (
-          <Button className='mt-20' onClick={StartCall}><PhoneCall/> Start Call</Button>
+          <Button className='mt-20' onClick={StartCall} disabled={ending}>
+            <PhoneCall/> Start Call
+          </Button>
         ) : (
-          <Button className='mt-20' variant='destructive' onClick={EndCall}><PhoneOff/> End Call</Button>
+          <Button className='mt-20' variant='destructive' onClick={EndCall} disabled={ending}>
+            <PhoneOff/> {ending ? 'Ending...' : 'End Call'}
+          </Button>
         )}
         </div>}
     </div>
