@@ -9,6 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { SessionDetail } from '../medical-agent/[sessionId]/page'
+import { Button } from '@/components/ui/button'
+import moment from 'moment';
 
 type Props ={
     historyList:SessionDetail[]
@@ -21,19 +23,22 @@ const HistoryTable = ({historyList} : Props) => {
   <TableCaption>Previous Consultation Reports</TableCaption>
   <TableHeader>
     <TableRow>
-      <TableHead className="w-[100px]">AI Medical Specialist</TableHead>
-      <TableHead>Description</TableHead>
+      <TableHead >AI Medical Specialist</TableHead>
+      <TableHead >Description</TableHead>
       <TableHead>Date</TableHead>
       <TableHead className="text-right">Action</TableHead>
     </TableRow>
   </TableHeader>
   <TableBody>
-    <TableRow>
-      <TableCell className="font-medium">INV001</TableCell>
-      <TableCell>Paid</TableCell>
-      <TableCell>Credit Card</TableCell>
-      <TableCell className="text-right">$250.00</TableCell>
+    {historyList.map((record:SessionDetail, index:number)=>(
+        <TableRow key={index}>
+      <TableCell className="font-medium">{record.selectedDoctor.specialist}</TableCell>
+      <TableCell>{record.notes}</TableCell>
+      <TableCell>{ moment(new Date(record.createdOn)).fromNow() }</TableCell>
+      <TableCell className="text-right"> <Button variant={'link'} size={'sm'}>View Report</Button> </TableCell>
     </TableRow>
+    ))}
+   
   </TableBody>
 </Table>
     </div>
