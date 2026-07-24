@@ -106,6 +106,7 @@ import { doctorAgent } from "./DoctorsAgentCard";
 import SuggestedDoctorCard from "./SuggestedDoctorCard"; 
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 
 export function AddNewSessionDialog() {
   const [note, setNote] = useState<string>();
@@ -115,6 +116,10 @@ export function AddNewSessionDialog() {
   const [step, setStep] = useState(1); 
   const router = useRouter();
 
+
+    const { has } = useAuth();
+    // @ts-ignore
+    const paidUser = has && has({plan:'pro'});
  
   const OnClickNext = async () => {
     setLoading(true);
@@ -144,7 +149,7 @@ export function AddNewSessionDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="mt-4 cursor-pointer">+ Start a Consultation</Button>
+        <Button className="mt-4 cursor-pointer" disabled={!paidUser}>+ Start a Consultation</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
